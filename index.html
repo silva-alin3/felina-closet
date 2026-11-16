@@ -64,7 +64,20 @@ function logoutAdmin(){sessionStorage.removeItem('felinaAdminUnlocked');document
 function renderFilters(){document.getElementById('filters').innerHTML=cats.map(c=>`<button class="${c===category?'active':''}" onclick="category='${c}';renderFilters();render()">${c}</button>`).join('')}
 function render(){let q=document.getElementById('search').value.toLowerCase(),sort=document.getElementById('sort').value;let list=products.filter(p=>(category==='Todos'||p.category===category)&&(p.name+' '+p.description+' '+p.category).toLowerCase().includes(q));if(sort==='low')list.sort((a,b)=>Number(a.price)-Number(b.price));if(sort==='high')list.sort((a,b)=>Number(b.price)-Number(a.price));document.getElementById('products').innerHTML=list.length?list.map(p=>`<article class="product"><div class="photo">${p.photo?`<img src="${esc(p.photo)}" alt="${esc(p.name)}" onerror="this.parentElement.innerHTML='Foto indisponível'">`:'FELINA SELECT ✦'}</div><div class="pinfo"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><div class="desc">${esc(p.description||'Um achadinho escolhido pela Felina.')}</div><div class="price">${money(p.price)}</div><a class="buy" href="${esc(p.link)}" target="_blank" rel="noopener" onclick="clickProduct('${p.id}')">Ver na SHEIN ↗</a></div></article>`).join(''):'<div class="empty">Ainda não há achadinhos por aqui. Volte em breve! ✦</div>';document.getElementById('stats').textContent=`${products.length} produto(s) cadastrados · ${Object.values(JSON.parse(localStorage.getItem('felinaClicks')||'{}')).reduce((a,b)=>a+b,0)} clique(s) registrados neste navegador.`}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function clickProduct(id){let c=JSON.parse(localStorage.getItem('felinaClicks')||'{}');c[id]=(c[id]||0)+1;localStorage.setItem('felinaClicks',JSON.stringify(c))}
-document.getElementById('productForm').onsubmit=e=>{e.preventDefault();products.unshift({id:Date.now().toString(),name:name.value.trim(),category:categorySelect(),price:price.value.replace(',','.'),link:link.value,photo:photoUrl.value,description:description.value.trim()});save();e.target.reset();render();manage();alert('Produto adicionado à vitrine!')};async function fetchSheinProduct(){
+document.getElementById('productForm').onsubmit=e=>{
+ e.preventDefault();
+ const field=id=>document.getElementById(id);
+ const productName=field('name').value.trim();
+ const productPrice=field('price').value.trim();
+ const productLink=field('link').value.trim();
+ if(!productName||!productPrice||!productLink){alert('Preencha nome, preço e link do produto.');return}
+ try{
+  products.unshift({id:Date.now().toString(),name:productName,category:categorySelect(),price:productPrice.replace(',','.'),link:productLink,photo:field('photoUrl').value.trim(),description:field('description').value.trim()});
+  save();e.target.reset();render();manage();
+  const status=field('importStatus');status.textContent='Produto adicionado à vitrine com sucesso!';status.className='import-status success';
+  alert('Produto adicionado à vitrine!');
+ }catch(err){alert('Não foi possível salvar o produto: '+(err.message||'erro desconhecido'))}
+};async function fetchSheinProduct(){
  const input=document.getElementById('link'),status=document.getElementById('importStatus'),btn=document.getElementById('fetchProductBtn');
  const raw=input.value.trim();
  if(!raw){status.textContent='Cole primeiro o link do produto da SHEIN.';status.className='import-status error';input.focus();return}
