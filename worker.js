@@ -7,7 +7,7 @@ export default {
   if (!target) return Response.json({error:"Informe o link do produto."},{status:400});
   let productUrl;
   try { productUrl = new URL(target); } catch { return Response.json({error:"Link inválido."},{status:400}); }
-  if (productUrl.protocol !== "https:" || !/(^|\\.)shein\\.com$/i.test(productUrl.hostname))
+  if (productUrl.protocol !== "https:" || !/(^|\.)shein\.com$/i.test(productUrl.hostname))
    return Response.json({error:"Use um endereço oficial da SHEIN."},{status:400});
   try {
    const upstream = await fetch(productUrl.toString(), {
@@ -20,31 +20,29 @@ export default {
    });
    if (!upstream.ok) return Response.json({error:"A SHEIN bloqueou ou não liberou a leitura dessa página (HTTP "+upstream.status+"). Tente outro link ou preencha os dados manualmente."},{status:502});
    const html = await upstream.text();
-   const meta = (key) => {
-    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-    const patterns = [
-     new RegExp('<meta[^>]+(?:property|name)=["\\']'+escaped+'["\\'][^>]+content=["\\']([^"\\']*)["\\']','i'),
-     new RegExp('<meta[^>]+content=["\\']([^"\\']*)["\\'][^>]+(?:property|name)=["\\']'+escaped+'["\\']','i')
-    ];
-    for (const re of patterns) { const m=html.match(re); if(m) return decode(m[1]); }
-    return "";
-   };
-   const decode = s => s.replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&#x27;/gi,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#(\\d+);/g,(_,n)=>String.fromCharCode(Number(n)));
-   let title=meta("og:title")||meta("twitter:title");
-   let image=meta("og:image")||meta("twitter:image");
-   let description=meta("og:description")||meta("description");
-   let price=meta("product:price:amount")||meta("og:price:amount");
+   const decode = s => s.replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&#x27;/gi,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(Number(n)));
+   const metas = {};
+   for (const tag of html.match(/<meta\b[^>]*>/gi) || []) {
+    const attrs = {};
+    for (const m of tag.matchAll(/([\w:-]+)\s*=\s*["']([^"']*)["']/g)) attrs[m[1].toLowerCase()] = decode(m[2]);
+    const key = (attrs.property || attrs.name || "").toLowerCase();
+    if (key && attrs.content) metas[key] = attrs.content;
+   }
+   let title=metas["og:title"]||metas["twitter:title"]||"";
+   let image=metas["og:image"]||metas["twitter:image"]||"";
+   let description=metas["og:description"]||metas["description"]||"";
+   let price=metas["product:price:amount"]||metas["og:price:amount"]||"";
    if (!price) {
-    const m=html.match(/"(?:salePrice|retailPrice|specialPrice|price)"\\s*:\\s*"?([0-9]+(?:\\.[0-9]{1,2})?)"?/i);
+    const m=html.match(/"(?:salePrice|retailPrice|specialPrice|price)"\s*:\s*"?([0-9]+(?:\.[0-9]{1,2})?)"?/i);
     if(m) price=m[1];
    }
    if (!title) {
-    const m=html.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i);
+    const m=html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     if(m) title=decode(m[1].replace(/<[^>]+>/g,"").trim());
    }
-   title=title.replace(/\\s*[|｜-]\\s*SHEIN.*$/i,"").trim();
+   title=title.replace(/\s*[|｜-]\s*SHEIN.*$/i,"").trim();
    if (description.length>300) description=description.slice(0,297)+"...";
-   return Response.json({title,image,description,price},{headers:{"Cache-Control":"no-store","Access-Control-Allow-Origin":"*"}});
+   return Response.json({title,image,description,price},{headers:{"Cache-Control":"no-store"}});
   } catch (e) {
    return Response.json({error:"Não consegui acessar a página da SHEIN agora. Tente novamente ou preencha os campos manualmente."},{status:502});
   }
