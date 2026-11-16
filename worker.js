@@ -7,7 +7,7 @@ export default {
   if (!target) return Response.json({error:"Informe o link do produto."},{status:400});
   let productUrl;
   try { productUrl = new URL(target); } catch { return Response.json({error:"Link inválido."},{status:400}); }
-  if (productUrl.protocol !== "https:" || !/(^|\.)shein\.com$/i.test(productUrl.hostname))
+  if (productUrl.protocol !== "https:" || !(productUrl.hostname.toLowerCase() === "shein.com" || productUrl.hostname.toLowerCase().endsWith(".shein.com")))
    return Response.json({error:"Use um endereço oficial da SHEIN."},{status:400});
   try {
    const upstream = await fetch(productUrl.toString(), {
