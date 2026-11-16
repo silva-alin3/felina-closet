@@ -69,7 +69,7 @@ document.getElementById('productForm').onsubmit=e=>{e.preventDefault();products.
  const raw=input.value.trim();
  if(!raw){status.textContent='Cole primeiro o link do produto da SHEIN.';status.className='import-status error';input.focus();return}
  let parsed;try{parsed=new URL(raw)}catch{status.textContent='Esse link não parece válido. Confira e tente novamente.';status.className='import-status error';return}
- if(!/(^|\.)shein\.com$/i.test(parsed.hostname)){status.textContent='Por segurança, use um link de produto cujo endereço seja da SHEIN.';status.className='import-status error';return}
+ if(!(parsed.hostname.toLowerCase()==='shein.com'||parsed.hostname.toLowerCase().endsWith('.shein.com'))){status.textContent='Por segurança, use um link de produto cujo endereço seja da SHEIN.';status.className='import-status error';return}
  btn.disabled=true;btn.textContent='Buscando...';status.textContent='Lendo as informações do produto na SHEIN...';status.className='import-status';
  try{
   const response=await fetch('/api/product?url='+encodeURIComponent(raw),{headers:{'Accept':'application/json'}});
