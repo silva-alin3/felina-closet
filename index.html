@@ -52,7 +52,7 @@
 <section class="hero"><div><h1>Para divas como <em>você 🫵</em></h1><p>Peças que chamam atenção. Achadinhos escolhidos a dedo para deixar seu estilo falar mais alto.</p><button class="btn" onclick="document.getElementById('vitrine').scrollIntoView({behavior:'smooth'})">Explorar achadinhos</button></div><div class="stamp">WILD<br>LOOKS<br>ONLY ✦</div></section>
 <div class="auth-backdrop" id="authBackdrop"><form class="auth-card" id="authForm"><h2 id="authTitle">Acesso da curadoria</h2><p id="authHelp">Digite sua senha para acessar o painel exclusivo da Felina.</p><input id="authPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required minlength="6"><input id="authConfirm" type="password" autocomplete="new-password" placeholder="Confirme sua senha" minlength="6" hidden><div class="auth-error" id="authError"></div><button class="btn" id="authSubmit" type="submit">Entrar</button><button class="btn secondary" type="button" onclick="closeAuth()">Cancelar</button></form></div>
 <main class="wrap" id="vitrine"><div class="section-head"><div><h2>Escolhas da Felina</h2><p>Garimpos especiais para atualizar seu closet.</p></div></div><div class="filters" id="filters"></div><div class="tools"><input id="search" placeholder="Buscar uma peça..." oninput="render()"><select id="sort" onchange="render()"><option value="featured">Em destaque</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></div><div class="grid" id="products"></div>
-<section class="admin" id="admin"><div class="admin-head"><h2>Central da curadoria</h2><button class="btn secondary" type="button" onclick="logoutAdmin()">Sair</button></div><p>Cadastre e organize os achadinhos da sua vitrine neste navegador.</p><form id="productForm"><div class="formgrid"><input id="name" placeholder="Nome do produto" required><select id="category"><option>Vestidos</option><option>Moda praia</option><option>Lingerie</option><option>Conjuntos</option><option>Acessórios</option><option>Calçados</option><option>Outros</option></select><input id="price" placeholder="Preço (ex.: 59,90)" required><div class="link-import"><input id="link" type="url" placeholder="Cole aqui o link da SHEIN (pode ser de afiliada)" required><button class="btn secondary" type="button" id="fetchProductBtn" onclick="fetchSheinProduct()">Buscar produto</button></div><p class="import-status" id="importStatus" role="status">Cole o link e busque para preencher os dados automaticamente.</p><input id="photoUrl" type="url" placeholder="Link da foto (opcional)"><textarea id="description" placeholder="Descrição curta (opcional)" rows="2"></textarea></div><div class="admin-actions"><button class="btn" id="productSubmitBtn" type="submit">Adicionar produto</button><button class="btn secondary" id="cancelEditBtn" type="button" onclick="cancelProductEdit()" hidden>Cancelar edição</button><button class="btn secondary" type="button" onclick="copyGroupList()">Copiar achadinhos para o grupo</button></div></form><p id="stats"></p><small>Com um toque, copie seus achadinhos em uma mensagem pronta para compartilhar no grupo do WhatsApp.</small><div id="manage"></div></section></main>
+<section class="admin" id="admin"><div class="admin-head"><h2>Central da curadoria</h2><button class="btn secondary" type="button" onclick="logoutAdmin()">Sair</button></div><p>Cadastre e organize os achadinhos da sua vitrine neste navegador.</p><form id="productForm" novalidate><div class="formgrid"><input id="name" placeholder="Nome do produto" required><select id="category"><option>Vestidos</option><option>Moda praia</option><option>Lingerie</option><option>Conjuntos</option><option>Acessórios</option><option>Calçados</option><option>Outros</option></select><input id="price" placeholder="Preço (ex.: 59,90)" required><div class="link-import"><input id="link" type="url" placeholder="Cole aqui o link da SHEIN (pode ser de afiliada)" required><button class="btn secondary" type="button" id="fetchProductBtn" onclick="fetchSheinProduct()">Buscar produto</button></div><p class="import-status" id="importStatus" role="status">Cole o link e busque para preencher os dados automaticamente.</p><input id="photoUrl" type="url" placeholder="Link da foto (opcional)"><textarea id="description" placeholder="Descrição curta (opcional)" rows="2"></textarea></div><div class="admin-actions"><button class="btn" id="productSubmitBtn" type="button" onclick="saveProduct(event)">Adicionar produto</button><button class="btn secondary" id="cancelEditBtn" type="button" onclick="cancelProductEdit()" hidden>Cancelar edição</button><button class="btn secondary" type="button" onclick="copyGroupList()">Copiar achadinhos para o grupo</button></div></form><p id="stats"></p><small>Com um toque, copie seus achadinhos em uma mensagem pronta para compartilhar no grupo do WhatsApp.</small><div id="manage"></div></section></main>
 <footer class="footer"><strong>Felina Closet</strong><p>ACHADINHOS COM ATITUDE · SUA CURADORIA DE ESTILO</p><small>Todos os links são de afiliados. Os preços e a disponibilidade podem mudar na loja.</small></footer>
 <script>
 const KEY='felinaClosetProductsV2';let products=JSON.parse(localStorage.getItem(KEY)||'[]');let category='Todos';let authMode='login';let editingProductId=null;const cats=['Todos','Vestidos','Moda praia','Lingerie','Conjuntos','Acessórios','Calçados','Outros'];function save(){localStorage.setItem(KEY,JSON.stringify(products))}function money(v){return 'R$ '+Number(String(v).replace(',','.')).toFixed(2).replace('.',',')}function toggleAdmin(){if(sessionStorage.getItem('felinaAdminUnlocked')==='yes'){document.getElementById('admin').classList.add('open');manage();document.getElementById('admin').scrollIntoView({behavior:'smooth',block:'start'});return}openAuth()}
@@ -64,7 +64,45 @@ function logoutAdmin(){sessionStorage.removeItem('felinaAdminUnlocked');document
 function renderFilters(){document.getElementById('filters').innerHTML=cats.map(c=>`<button class="${c===category?'active':''}" onclick="category='${c}';renderFilters();render()">${c}</button>`).join('')}
 function render(){let q=document.getElementById('search').value.toLowerCase(),sort=document.getElementById('sort').value;let list=products.filter(p=>(category==='Todos'||p.category===category)&&(p.name+' '+p.description+' '+p.category).toLowerCase().includes(q));if(sort==='low')list.sort((a,b)=>Number(a.price)-Number(b.price));if(sort==='high')list.sort((a,b)=>Number(b.price)-Number(a.price));document.getElementById('products').innerHTML=list.length?list.map(p=>`<article class="product"><div class="photo">${p.photo?`<img src="${esc(p.photo)}" alt="${esc(p.name)}" onerror="this.parentElement.innerHTML='Foto indisponível'">`:'FELINA SELECT ✦'}</div><div class="pinfo"><div class="tag">${esc(p.category)}</div><h3>${esc(p.name)}</h3><div class="desc">${esc(p.description||'Um achadinho escolhido pela Felina.')}</div><div class="price">${money(p.price)}</div><a class="buy" href="${esc(p.link)}" target="_blank" rel="noopener" onclick="clickProduct('${p.id}')">Ver na SHEIN ↗</a></div></article>`).join(''):'<div class="empty">Ainda não há achadinhos por aqui. Volte em breve! ✦</div>';document.getElementById('stats').textContent=`${products.length} produto(s) cadastrados · ${Object.values(JSON.parse(localStorage.getItem('felinaClicks')||'{}')).reduce((a,b)=>a+b,0)} clique(s) registrados neste navegador.`}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function clickProduct(id){let c=JSON.parse(localStorage.getItem('felinaClicks')||'{}');c[id]=(c[id]||0)+1;localStorage.setItem('felinaClicks',JSON.stringify(c))}
-document.getElementById('productForm').onsubmit=e=>{e.preventDefault();const field=id=>document.getElementById(id);const productName=field('name').value.trim(),productPrice=field('price').value.trim(),productLink=field('link').value.trim();if(!productName||!productPrice||!productLink){alert('Preencha nome, preço e link do produto.');return}try{const data={name:productName,category:categorySelect(),price:productPrice.replace(',','.'),link:productLink,photo:field('photoUrl').value.trim(),description:field('description').value.trim()};if(editingProductId){const idx=products.findIndex(p=>p.id===editingProductId);if(idx<0)throw Error('Produto não encontrado.');products[idx]={...products[idx],...data}}else products.unshift({id:Date.now().toString(),...data});save();editingProductId=null;e.target.reset();field('productSubmitBtn').textContent='Adicionar produto';field('cancelEditBtn').hidden=true;render();manage();field('importStatus').textContent='Produto salvo na vitrine com sucesso!';field('importStatus').className='import-status success';alert('Produto salvo na vitrine!')}catch(err){alert('Não foi possível salvar: '+(err.message||'erro desconhecido'))}};async function fetchSheinProduct(){
+function saveProduct(e){
+ if(e)e.preventDefault();
+ const field=id=>document.getElementById(id);
+ const productName=field('name').value.trim();
+ const productPrice=field('price').value.trim();
+ const productLink=field('link').value.trim();
+ const status=field('importStatus');
+ if(!productName||!productPrice||!productLink){
+  status.textContent='Preencha nome, preço e link antes de salvar.';
+  status.className='import-status error';
+  alert('Preencha nome, preço e link antes de salvar.');
+  return;
+ }
+ try{
+  const data={name:productName,category:field('category').value,price:productPrice.replace(',','.'),link:productLink,photo:field('photoUrl').value.trim(),description:field('description').value.trim()};
+  if(editingProductId){
+   const idx=products.findIndex(p=>String(p.id)===String(editingProductId));
+   if(idx<0)throw new Error('Não encontrei este produto na lista. Atualize a página e tente novamente.');
+   products[idx]=Object.assign({},products[idx],data);
+  }else{
+   products.unshift(Object.assign({id:Date.now().toString()},data));
+  }
+  save();
+  render();
+  manage();
+  editingProductId=null;
+  field('productForm').reset();
+  field('productSubmitBtn').textContent='Adicionar produto';
+  field('cancelEditBtn').hidden=true;
+  status.textContent='Alterações salvas com sucesso na vitrine!';
+  status.className='import-status success';
+  alert('Alterações salvas com sucesso!');
+ }catch(err){
+  status.textContent=err.message||'Erro ao salvar. Tente novamente.';
+  status.className='import-status error';
+  alert(err.message||'Não foi possível salvar o produto.');
+ }
+}
+document.getElementById('productForm').onsubmit=saveProduct;async function fetchSheinProduct(){
  const input=document.getElementById('link'),status=document.getElementById('importStatus'),btn=document.getElementById('fetchProductBtn');
  const raw=input.value.trim();
  if(!raw){status.textContent='Cole primeiro o link do produto da SHEIN.';status.className='import-status error';input.focus();return}
